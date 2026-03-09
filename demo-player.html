@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GaanaPy Test Player</title>
+  <style>
+    :root {
+      color-scheme: dark;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #f5f5f5;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    h1 {
+      margin-top: 0;
+      font-size: 1.8rem;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    input, button {
+      font-size: 1rem;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background: #1c1c1c;
+      color: #f5f5f5;
+    }
+
+    input {
+      flex: 1;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .status {
+      min-height: 24px;
+      margin-bottom: 14px;
+      color: #c7c7c7;
+    }
+
+    .list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .card {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      padding: 12px;
+      gap: 12px;
+    }
+
+    .meta {
+      min-width: 0;
+    }
+
+    .title {
+      font-weight: 700;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .sub {
+      color: #b7b7b7;
+      font-size: 0.95rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .player {
+      margin-top: 18px;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid #2a2a2a;
+      background: #1a1a1a;
+    }
+
+    .now-playing {
+      margin-bottom: 8px;
+      color: #d7d7d7;
+    }
+
+    audio {
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>GaanaPy Test Music Player</h1>
+
+    <div class="search-row">
+      <input id="queryInput" type="text" placeholder="Search songs (e.g. kesariya)" />
+      <button id="searchBtn">Search</button>
+    </div>
+
+    <div id="status" class="status">Search for a song to start.</div>
+    <div id="results" class="list"></div>
+
+    <div class="player">
+      <div id="nowPlaying" class="now-playing">Now playing: Nothing selected</div>
+      <audio id="audioPlayer" controls></audio>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script>
+    const queryInput = document.getElementById('queryInput');
+    const searchBtn = document.getElementById('searchBtn');
+    const statusEl = document.getElementById('status');
+    const resultsEl = document.getElementById('results');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const nowPlayingEl = document.getElementById('nowPlaying');
+
+    let currentTrack = null;
+    let hlsInstance = null;
+
+    function setStatus(message) {
+      statusEl.textContent = message;
+    }
+//safe way of getting the data as the api returns multiple formats of the song
+    function getBestStreamUrl(track) {
+      const urls = track?.stream_urls?.urls || {};
+      return (
+        urls.high_quality ||
+        urls.medium_quality ||
+        urls.low_quality ||
+        urls.very_high_quality ||
+        ''
+      );
+    }
+// seokey - unique identifier similar to track:id
+    async function fetchSongInfo(seokey) {
+      const response = await fetch(`/songs/info/?seokey=${encodeURIComponent(seokey)}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch song info: ${response.status}`);
+      }
+      const data = await response.json();
+      return Array.isArray(data) ? data[0] : null;
+    }
+
+    function detachCurrentStream() {
+      if (hlsInstance) {
+        hlsInstance.destroy();
+        hlsInstance = null;
+      }
+      audioPlayer.removeAttribute('src');
+      audioPlayer.load();
+    }
+
+    async function playTrack(trackSummary) {
+      try {
+        setStatus(`Loading: ${trackSummary.title} ...`);
+        const fullTrack = await fetchSongInfo(trackSummary.seokey);
+
+        if (!fullTrack) {
+          throw new Error('No track info returned');
+        }
+
+        const streamUrl = getBestStreamUrl(fullTrack);
+        if (!streamUrl) {
+          throw new Error('No playable stream URL found for this track');
+        }
+
+        detachCurrentStream();
+        currentTrack = fullTrack;
+//hls - is a playlist not mp3file - song divide into smaller into smaller parts so player can adapt better 
+        const isHlsUrl = streamUrl.includes('.m3u8');
+        if (isHlsUrl && window.Hls && window.Hls.isSupported()) {
+          hlsInstance = new window.Hls();
+          hlsInstance.loadSource(streamUrl);
+          hlsInstance.attachMedia(audioPlayer);
+          hlsInstance.on(window.Hls.Events.MANIFEST_PARSED, async () => {
+            try {
+              await audioPlayer.play();
+              setStatus('Playing');
+            } catch (playError) {
+              setStatus(`Play failed: ${playError.message}`);
+            }
+          });
+          hlsInstance.on(window.Hls.Events.ERROR, (_event, data) => {
+            if (data?.fatal) {
+              setStatus(`HLS error: ${data.details || 'fatal playback error'}`);
+            }
+          });
+        } else {
+          audioPlayer.src = streamUrl;
+          await audioPlayer.play();
+          setStatus('Playing');
+        }
+
+        nowPlayingEl.textContent = `Now playing: ${fullTrack.title} — ${fullTrack.artists}`;
+      } catch (error) {
+        setStatus(`Play failed: ${error.message}`);
+      }
+    }
+
+    function pauseCurrentTrack() {
+      audioPlayer.pause();
+      setStatus('Paused');
+    }
+
+    function createCard(track) {
+      const card = document.createElement('div');
+      card.className = 'card';
+
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+
+      const title = document.createElement('div');
+      title.className = 'title';
+      title.textContent = track.title || 'Unknown Title';
+
+      const sub = document.createElement('div');
+      sub.className = 'sub';
+      sub.textContent = `${track.artists || 'Unknown Artist'} • ${track.album || 'Unknown Album'}`;
+
+      meta.appendChild(title);
+      meta.appendChild(sub);
+
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+
+      const playBtn = document.createElement('button');
+      playBtn.textContent = 'Play';
+      playBtn.addEventListener('click', () => playTrack(track));
+
+      const pauseBtn = document.createElement('button');
+      pauseBtn.textContent = 'Pause';
+      pauseBtn.addEventListener('click', pauseCurrentTrack);
+
+      actions.appendChild(playBtn);
+      actions.appendChild(pauseBtn);
+
+      card.appendChild(meta);
+      card.appendChild(actions);
+      return card;
+    }
+
+    async function searchSongs() {
+      const query = queryInput.value.trim();
+      if (!query) {
+        setStatus('Enter a search query first.');
+        return;
+      }
+
+      searchBtn.disabled = true;
+      setStatus('Searching...');
+      resultsEl.innerHTML = '';
+
+      try {
+        const response = await fetch(`/songs/search/?query=${encodeURIComponent(query)}&limit=10`);
+        if (!response.ok) {
+          throw new Error(`Search failed: ${response.status}`);
+        }
+
+        const results = await response.json();
+        if (!Array.isArray(results) || results.length === 0) {
+          setStatus('No results found.');
+          return;
+        }
+
+        setStatus(`Found ${results.length} result(s).`);
+        results.forEach((track) => {
+          resultsEl.appendChild(createCard(track));
+        });
+      } catch (error) {
+        setStatus(`Search error: ${error.message}`);
+      } finally {
+        searchBtn.disabled = false;
+      }
+    }
+
+    searchBtn.addEventListener('click', searchSongs);
+    queryInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        searchSongs();
+      }
+    });
+
+    audioPlayer.addEventListener('ended', () => {
+      setStatus('Track ended');
+    });
+
+    audioPlayer.addEventListener('error', () => {
+      const mediaError = audioPlayer.error;
+      if (!mediaError) {
+        setStatus('Playback error occurred.');
+        return;
+      }
+      setStatus(`Playback error (code ${mediaError.code}).`);
+    });
+  </script>
+</body>
+</html>

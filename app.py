@@ -1,14 +1,21 @@
+from pathlib import Path
 from fastapi import FastAPI, Query
+from fastapi.responses import FileResponse
 from fastapi.openapi.utils import get_openapi
 from api.gaanapy import GaanaPy
 from typing import Optional
 
 app = FastAPI()
 gaanapy = GaanaPy()
+BASE_DIR = Path(__file__).resolve().parent
 
 @app.get("/")
 async def home():
-    return {"Docs": "/docs", "Github": 'https://github.com/ZingyTomato/GaanaPy'}
+    return {"Docs": "/docs", "Github": 'https://github.com/ZingyTomato/GaanaPy', "Demo Player": "/demo/player"}
+
+@app.get("/demo/player", summary="Demo UI to search and play songs.")
+async def demo_player():
+    return FileResponse(BASE_DIR / "demo-player.html")
 
 @app.get("/songs/search/", summary="Search for songs.")
 async def songs_search(query: str = Query(description="Name of the song to search for."), 
