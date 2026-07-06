@@ -1,251 +1,79 @@
-# 🎶 GaanaPy
+# gaana_api
 
-GaanaPy is an unofficial JSON API for [`Gaana`](https://gaana.com), an Indian music streaming service.
+An unofficial JSON API for [Gaana](https://gaana.com), an Indian music streaming service, built with FastAPI. This repository is based on [ZingyTomato/GaanaPy](https://github.com/ZingyTomato/GaanaPy), with an added HTML demo player for quickly trying out search and playback.
 
-## 📖 Table Of Contents
+## What it does
 
-* [`🎧 Features`](#-features)
-* [`👨‍🔧 Usage`](#-usage)
-* [`💻 Local Development`](#-local-development)
-* [`🏥 Contributing`](#-contributing)
-* [`🐳 Docker Deployment`](#-docker-deployment)
+The API wraps Gaana's internal `apiv2` endpoints and exposes them as clean, structured JSON via FastAPI routes (see `api/endpoints.py` and `app.py`):
 
-## 🎧 **Features**
+- `GET /songs/search` – search for tracks by name (`query`, optional `limit`)
+- `GET /songs/info` – full track details by `seokey`, including decrypted HLS stream URLs at multiple bitrates
+- `GET /albums/search` – search for albums (`query`, optional `limit`)
+- `GET /albums/info` – album details by `seokey`
+- `GET /artists/search` – search for artists (`query`, optional `limit`)
+- `GET /artists/info` – artist details by `seokey`
+- `GET /artists/similar` – similar artists by `artist_id`
+- `GET /playlists/info` – playlist details by `seokey`
+- `GET /trending` – trending tracks by `language`
+- `GET /newreleases` – newly released songs/albums by `language`
+- `GET /charts` – curated top-chart playlists
+- `GET /demo/player` – a static HTML demo page (`demo-player.html`) for searching and playing tracks in the browser
+- `GET /docs` – auto-generated FastAPI/Swagger docs
 
-The API provides structured JSON responses for:
+The core logic lives in `api/gaanapy.py` (orchestrates requests to Gaana), `api/functions.py` (helper utilities, including AES-CBC decryption of stream URLs via `pycryptodome`), and `api/errors.py` (shared error responses). Each resource (albums, artists, charts, new releases, playlists, songs, trending) has its own module under `api/`.
 
-- **Tracks** – Search and retrieve details for specific tracks.
-- **Albums** – Search and fetch album information.
-- **Artists** – Search, view artist details, and find similar artists.
-- **Playlists** – Retrieve playlist details (search not supported).
-- **Top Charts** – Curated playlists across all languages.
-- **Trending Tracks** – Per-language trends.
-- **New Releases** – Latest music by language.
+## Tech stack
 
-### Example Track Response
-```json
-[
-  {
-    "seokey": "tyler-herro",
-    "album_seokey": "tyler-herro",
-    "track_id": "32408795",
-    "title": "Tyler Herro",
-    "artists": "Jack Harlow",
-    "artist_seokeys": "jack-harlow",
-    "artist_ids": "817522",
-    "artist_image": "https://a10.gaanacdn.com/gn_img/artists/XYybzrb2gz/Yybzn4Bgb2/size_m_1607927137.webp",
-    "album": "Tyler Herro",
-    "album_id": "3487503",
-    "duration": "156",
-    "popularity": "18444~18444",
-    "genres": "Hip Hop",
-    "is_explicit": true,
-    "language": "English",
-    "label": "Generation Now/Atlantic",
-    "release_date": "2020-10-22",
-    "play_count": "<100K",
-    "favorite_count": 231,
-    "song_url": "https://gaana.com/song/tyler-herro",
-    "album_url": "https://gaana.com/album/tyler-herro",
-    "images": {
-      "urls": {
-        "large_artwork": "https://a10.gaanacdn.com/gn_img/albums/4Z9bqo3yQn/Z9bq2AG1Ky/size_l.jpg",
-        "medium_artwork": "https://a10.gaanacdn.com/gn_img/albums/4Z9bqo3yQn/Z9bq2AG1Ky/size_m.jpg",
-        "small_artwork": "https://a10.gaanacdn.com/gn_img/albums/4Z9bqo3yQn/Z9bq2AG1Ky/size_s.jpg"
-      }
-    },
-    "stream_urls": {
-      "urls": {
-        "very_high_quality": "https://vodhlsgaana-ebw.akamaized.net/hls/3/3487503/32408795/320.mp4.master.m3u8?hdnts=st=1750835850~exp=1750850250~acl=/*~hmac=ebd312837a89763eb967627048071b22ee619be14219ff402143d023c50cf7bb",
-        "high_quality": "https://vodhlsgaana-ebw.akamaized.net/hls/3/3487503/32408795/128.mp4.master.m3u8?hdnts=st=1750835850~exp=1750850250~acl=/*~hmac=ebd312837a89763eb967627048071b22ee619be14219ff402143d023c50cf7bb",
-        "medium_quality": "https://vodhlsgaana-ebw.akamaized.net/hls/3/3487503/32408795/64.mp4.master.m3u8?hdnts=st=1750835850~exp=1750850250~acl=/*~hmac=ebd312837a89763eb967627048071b22ee619be14219ff402143d023c50cf7bb",
-        "low_quality": "https://vodhlsgaana-ebw.akamaized.net/hls/3/3487503/32408795/16.mp4.master.m3u8?hdnts=st=1750835850~exp=1750850250~acl=/*~hmac=ebd312837a89763eb967627048071b22ee619be14219ff402143d023c50cf7bb"
-      }
-    }
-  }
-]
-```
+- Python 3, [FastAPI](https://fastapi.tiangolo.com/) + [uvicorn](https://www.uvicorn.org/) for the web server
+- [aiohttp](https://docs.aiohttp.org/) for async HTTP calls to Gaana's backend
+- [pycryptodome](https://pycryptodome.readthedocs.io/) for decrypting stream URLs (AES-CBC)
+- [pytest](https://docs.pytest.org/) + `pytest-asyncio` for the test suite (see `tests/`)
+- Docker (a `Dockerfile` is included; `docker-compose.yml` as shipped points at the upstream `zingytomato/gaanapy:main` image rather than building locally)
 
-## 👨‍🔧 **Usage**
+See `requirements.txt` for exact pinned versions.
 
-API documentation (when running locally):
-http://127.0.0.1:8000/docs
-
-#### **Search For Songs**: (Requires a search query, limit is optional)
-```sh
-http://127.0.0.1:8000/songs/search?query=<insert-query-here>&limit=<insert-limit-here, eg. 5>
-```
-**Example:** Create a GET request or navigate to `http://127.0.0.1:8000/songs/search?query=tyler herro` to get a JSON response of song results in return.
-
----
-#### **Search For Albums**: (Requires a search query, limit is optional)
-```sh
-http://127.0.0.1:8000/albums/search?query=<insert-query-here>&limit=<insert-limit-here, eg. 5>
-```
-**Example:** Create a GET request or navigate to `http://127.0.0.1:8000/albums/search?query=all over the place` to get a JSON response of album results in return.
-
-----
-#### **Search For Artists**: (Requires a search query, limit is optional)
-```sh
-http://127.0.0.1:8000/artists/search?query=<insert-query-here>&limit=<insert-limit-here, eg. 5>
-```
-**Example:** Create a GET request or navigate to `http://127.0.0.1:8000/artists/search?query=KSI` to get a JSON response of artist results in return.
-
-----
-#### **Get Similar Artists**: (Requires an Artist ID)
-```sh
-http://127.0.0.1:8000/artists/similar?artist_id=ARTIST_ID
-```
-**How do I find an artist's ID?:**
-
-* Using [`Search For Songs`](#search-for-songs-requires-a-search-query-limit-is-optional) or [`Search For Albums`](#search-for-albums-requires-a-search-query-limit-is-optional), locate:
-```json
-[
-  {
-    "artist_ids": "817522", (There may be more than 1 artist ID depending on the number of artists in the song/album.) 
-  }
-]
- ```
-
-**Example:** Create a GET request or navigate to `http://127.0.0.1:8000/artists/similar?artist_id=817522` to get a JSON response of similar artists in return.
-
-----
-#### **Get Song Info**: (Requires a SEOKEY)
-```sh
-http://127.0.0.1:8000/songs/info?seokey=SEOKEY
-```
-**How do I find a song's seokey?:**
-
-* In a URL, for example, `https://gaana.com/song/tyler-herro`, `tyler-herro` is the song's seokey.  
-* Using [`Search For Songs`](#search-for-songs-requires-a-search-query-limit-is-optional), locate:
-```json 
-[
-  {
-    "seokey": "tyler-herro", 
-  }
-]
- ```
-
-**Example:** Create a GET request or navigate to `http://127.0.0.1:8000/songs/info?seokey=tyler-herro` to get a JSON response of the song's info in return.
-
-----
-#### **Get Album Info**: (Requires a SEOKEY)
-```sh
-http://127.0.0.1:8000/albums/info?seokey=ALBUM_SEOKEY
-```
-**How do I find an albums's seokey?:**
-
-* In a URL, for example, `https://gaana.com/album/tyler-herro`, `tyler-herro` is the albums's seokey.  
-* Using [`Search For Albums`](#search-for-albums-requires-a-search-query-limit-is-optional), locate:
-```json 
-[
-  {
-    "seokey": "tyler-herro", 
-  }
-]
- ```
-* Using [`Search For Songs`](#search-for-songs-requires-a-search-query-limit-is-optional), locate:
-```json 
-[
-  {
-    "album_seokey": "tyler-herro", 
-  }
-]
-```
-
-**Example:** Create a GET request or navigate to `http://127.0.0.1:8000/albums/info?seokey=tyler-herro` to get a JSON response of the album's info in return.
-
-----
-#### **Get Artist Info**: (Requires a SEOKEY)
-```sh
-http://127.0.0.1:8000/artists/info?seokey=SEOKEY
-```
-**How do I find an artist's seokey?:**
-
-* In a URL, for example, `https://gaana.com/artist/jack-harlow`, `jack-harlow` is the song's seokey.  
-* Using [`Search For Songs`](#search-for-songs-requires-a-search-query-limit-is-optional) or [`Search For Albums`](#search-for-albums-requires-a-search-query-limit-is-optional), locate:
-```json 
-[
-  {
-    "artist_seokeys": "jack-harlow", (There may be more than 1 seokey depending on the number of artists in the song/album.) 
-  }
-]
- ```
-
-**Example:** Create a GET request or navigate to `http://127.0.0.1:8000/artists/info?seokey=jack-harlow` to get a JSON response of the artist's info in return.
-
-----
-#### **Get Playlist Info**: (Requires a SEOKEY)
+## Setup
 
 ```sh
-http://127.0.0.1:8000/playlists/info?seokey=SEOKEY
+git clone https://github.com/rkaran112/gaana_api
+cd gaana_api
+pip3 install -r requirements.txt
+python3 -m uvicorn app:app --reload
 ```
-**How do I find a playlists's seokey?:**
 
-* In a URL, for example, `https://gaana.com/playlist/gaana-dj-gaana-international-top-50`, `gaana-dj-gaana-international-top-50` is the playlist's seokey. 
+Then open `http://127.0.0.1:8000` (or `http://127.0.0.1:8000/docs` for interactive API docs, and `http://127.0.0.1:8000/demo/player` for the demo player UI).
 
+### Docker (build locally)
 
-**Example:** Create a GET request or navigate to `http://127.0.0.1:8000/playlists/info?seokey=gaana-dj-gaana-international-top-50` to get a JSON response of the playlist's info in return.
-
-----
-#### **Get Trending Tracks**: (Requires a LANGUAGE)
 ```sh
-http://127.0.0.1:8000/trending?lang=LANGUAGE
+docker build -t gaana_api .
+docker run -p 8000:8000 gaana_api
 ```
-**Language Options:** English, Hindi, Punjabi, Telugu, Tamil etc. (Warning: Case sensitive!). Defaults to Hindi if no language is provided or if an invalid language is entered.
 
-**Example:** Create a GET request or navigate to `http://127.0.0.1:8000/trending?lang=English` to get a JSON response of the trending English songs in return.
+Note: the included `docker-compose.yml` pulls the upstream `zingytomato/gaanapy:main` image rather than building from this repo's `Dockerfile`. Edit it (or use `docker build`/`docker run` above) if you want to run the code in this repo specifically.
 
-----
-#### **Get New Releases**: (Requires a language)
+## Usage example
+
+Search for a song:
+
 ```sh
-http://127.0.0.1:8000/newreleases?lang=LANGUAGE
+curl "http://127.0.0.1:8000/songs/search?query=tyler%20herro&limit=5"
 ```
-**Language Options:** English, Hindi, Punjabi, Telugu, Tamil etc. (Warning: Case sensitive!). Defaults to Hindi if no language is provided or if an invalid language is entered.
 
-**Example:** Create a GET request or navigate to `http://127.0.0.1:8000/newreleases?lang=English` to get a JSON response of both new English songs and English albums in return.
+Returns a JSON array of matching tracks, each including metadata (title, artists, album, genre, release date) plus decrypted `stream_urls` at multiple qualities and `images` at multiple sizes.
 
-----
-#### **Get Charts** (Returns a list of popular playlists):
+Get details for a specific track by its `seokey` (the slug from a `gaana.com/song/<seokey>` URL):
+
 ```sh
-http://127.0.0.1:8000/charts
+curl "http://127.0.0.1:8000/songs/info?seokey=tyler-herro"
 ```
 
-**Example:** Create a GET request or navigate to `http://127.0.0.1:8000/charts` to get a JSON response of the top charts.
+## Status
 
-## 💻 **Local Development**
+Functionally complete for its scope: all documented endpoints are implemented with real logic (no stub functions or `TODO`/`FIXME` markers found), error cases (invalid seokey, no results) are handled via `api/errors.py`, and there's a test suite (`tests/`) covering the helper functions and each resource module. A couple of things worth knowing if you extend this:
 
-Clone the Repository
-```sh
-$ git clone https://github.com/ZingyTomato/GaanaPy
-```
-Enter `/GaanaPy` and install all the requirements using
-```sh
-$ pip3 install -r requirements.txt
-```
-Run the app using
-```sh
-$ python3 -m uvicorn app:app --reload
-```
+- The AES decryption key in `api/functions.py` is hardcoded and commented as something Gaana "can possibly keep changing" — if stream URL decryption starts failing, that key is the first place to check.
+- Two endpoints (`similar_songs_url`, `similar_albums_url` in `api/endpoints.py`) are commented out, noted as currently returning nothing from Gaana's side.
+- `docker-compose.yml` references the upstream image rather than this repo's own `Dockerfile` (see Docker section above).
 
-Navigate to: `http://127.0.0.1:8000` to get started.
-
-## **🐳 Docker Deployment**
-
-Deploy the API locally using the following Docker-Compose stack: 
-
-```
-services:
-  gaanapy:
-    image: zingytomato/gaanapy:main
-    container_name: gaanapy
-    ports:
-      - 8000:8000 # External port can be changed
-    restart: unless-stopped
-```
-
-Navigate to: `http://SERVER_IP:8000` to get started.
-
-## 🏥 Contributing
-
-Feel free to create an issue if you encounter any bugs or would like to suggest something!
+This is an unofficial, reverse-engineered client against Gaana's private API, so it may break if Gaana changes their backend.
