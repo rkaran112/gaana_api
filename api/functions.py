@@ -46,12 +46,12 @@ class Functions:
             ids.append(i['artist_id'])
         return ', '.join(ids)
 
-    async def findGenres(self, results: list) -> str:  
+    async def findGenres(self, results: list) -> str:
         genres = []
         for i in results:
             try:
                 genres.append(i['name'])
-            except ValueError:
+            except KeyError:
                 return ""
         return ', '.join(genres)
 

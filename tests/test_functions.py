@@ -36,6 +36,14 @@ async def test_findArtistIds():
     assert await functions.findArtistIds([]) == ""
     
 @pytest.mark.asyncio
+async def test_findGenres():
+    genres = [{"name": "Pop"}, {"name": "Rock"}]
+    result = await functions.findGenres(genres)
+    assert result == "Pop, Rock"
+    assert await functions.findGenres([]) == ""
+    assert await functions.findGenres([{"id": 1}]) == ""
+
+@pytest.mark.asyncio
 async def test_isExplicit():
     is_explicit = 1
     is_not_explicit = 0
