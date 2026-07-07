@@ -15,7 +15,7 @@ class NewReleases:
                     track_seokeys.append(result['entities'][int(i)]['seokey'])
             except (IndexError, TypeError, KeyError):
                 pass
-        if len(track_seokeys) and len(album_seokeys) == 0:
+        if len(track_seokeys) == 0 and len(album_seokeys) == 0:
             return await errors.no_results()
         data = {}
         data['tracks'] = await self.get_track_info(track_seokeys)
