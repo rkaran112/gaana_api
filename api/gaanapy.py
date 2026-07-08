@@ -17,5 +17,9 @@ class GaanaPy(Songs, Albums, Artists, Trending, NewReleases, Charts, Playlists):
         self.functions = Functions()
         self.errors = Errors()
         self.info = False
+
+    async def async_init(self):
+        return self
+
     def __await__(self):
         return self.async_init().__await__()
