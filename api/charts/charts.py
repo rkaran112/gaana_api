@@ -7,8 +7,16 @@ class Charts:
         errors = self.errors
         response = await aiohttp.post(endpoints.charts_url + str(limit))
         result = await response.json()
+        entities = []
+        for i in range(0, int(limit)):
+            try:
+                entities.append(result['entities'][int(i)])
+            except (IndexError, TypeError, KeyError):
+                pass
+        if len(entities) == 0:
+            return await errors.no_results()
         chart_info = []
-        chart_info.extend(await asyncio.gather(*[self.format_json_charts(result['entities'][int(i)]) for i in range(0, int(limit))]))
+        chart_info.extend(await asyncio.gather(*[self.format_json_charts(entity) for entity in entities]))
         return chart_info
 
     async def format_json_charts(self, results: dict) -> dict:
