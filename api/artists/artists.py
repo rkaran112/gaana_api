@@ -44,10 +44,19 @@ class Artists:
     async def get_similar_artists(self, artist_id: str, limit: int) -> dict:
         aiohttp = self.aiohttp
         endpoints = self.api_endpoints
+        errors = self.errors
         response = await aiohttp.get(endpoints.similar_artists_url + artist_id)
         result = await response.json()
+        entities = []
+        for i in range(0, int(limit)):
+            try:
+                entities.append(result['entities'][int(i)])
+            except (IndexError, TypeError, KeyError):
+                pass
+        if len(entities) == 0:
+            return await errors.no_results()
         similar_artists = []
-        similar_artists.extend(await asyncio.gather(*[self.format_json_similar_artists(result['entities'][i]) for i in range(int(limit))]))
+        similar_artists.extend(await asyncio.gather(*[self.format_json_similar_artists(entity) for entity in entities]))
         return similar_artists
 
     async def format_json_artists(self, results: dict) -> dict:
