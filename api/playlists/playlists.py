@@ -5,12 +5,17 @@ class Playlists:
         errors = self.errors
         response = await aiohttp.post(endpoints.playlist_details_url + playlist_id)
         result = await response.json()
-        track_count = result['count']
+        try:
+            track_count = result['count']
+        except (TypeError, KeyError):
+            return await errors.no_results()
         track_ids = []
         for i in range(0,int(track_count)):
             try:
                 track_ids.append(result['tracks'][int(i)]['seokey'])
             except (IndexError, TypeError, KeyError):
                 pass
+        if len(track_ids) == 0:
+            return await errors.no_results()
         track_data = await self.get_track_info(track_ids)
         return track_data

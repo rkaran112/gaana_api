@@ -47,3 +47,29 @@ async def test_get_playlist_info_skips_missing_seokeys():
     await formatter.get_playlist_info("test-playlist")
 
     formatter.get_track_info.assert_called_once_with(["track-one"])
+
+@pytest.mark.asyncio
+async def test_get_playlist_info_returns_no_results_for_invalid_playlist():
+    formatter = FakePlaylists()
+    formatter.errors = Errors()
+    fake_response = AsyncMock()
+    fake_response.json.return_value = {"ERROR": "Invalid Seokey!"}
+    formatter.aiohttp.post.return_value = fake_response
+
+    result = await formatter.get_playlist_info("bad-playlist")
+
+    assert result == {"ERROR": "Unable to find any results!"}
+    formatter.get_track_info.assert_not_called()
+
+@pytest.mark.asyncio
+async def test_get_playlist_info_returns_no_results_for_empty_playlist():
+    formatter = FakePlaylists()
+    formatter.errors = Errors()
+    fake_response = AsyncMock()
+    fake_response.json.return_value = {"count": 0, "tracks": []}
+    formatter.aiohttp.post.return_value = fake_response
+
+    result = await formatter.get_playlist_info("empty-playlist")
+
+    assert result == {"ERROR": "Unable to find any results!"}
+    formatter.get_track_info.assert_not_called()
