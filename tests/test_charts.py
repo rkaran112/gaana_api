@@ -7,6 +7,7 @@ from api.charts.charts import Charts
 class FakeFormatter(Charts):
     def __init__(self):
         self.functions = AsyncMock(spec=Functions)
+        self.errors = Errors()
 
 class FakeCharts(Charts):
     def __init__(self, entities):
@@ -44,6 +45,14 @@ async def test_format_json_charts():
     assert result["images"]["urls"]["large_artwork"] == "https://cdn.gaana.com/images/playlist/size_l.jpg"
     assert "playlist_id" in result
     assert "playlist_url" in result
+
+@pytest.mark.asyncio
+async def test_format_json_charts_missing_seokey_returns_error():
+    formatter = FakeFormatter()
+
+    result = await formatter.format_json_charts({"entity_id": "playlist-456"})
+
+    assert result == {"ERROR": "Invalid Seokey!"}
 
 @pytest.mark.asyncio
 async def test_get_charts_limit_exceeds_available_entities():

@@ -21,8 +21,12 @@ class Charts:
 
     async def format_json_charts(self, results: dict) -> dict:
         functions = self.functions
+        errors = self.errors
         data = {}
-        data['seokey'] = results['seokey']
+        try:
+            data['seokey'] = results['seokey']
+        except (IndexError, TypeError, KeyError):
+            return await errors.invalid_seokey()
         data['playlist_id'] = results['entity_id']
         data['title'] = results['name']
         data['language'] = results['language']
