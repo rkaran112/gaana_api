@@ -66,7 +66,7 @@ class Albums:
         data['track_count'] = results['album']['trackcount']
         try:
             data['release_date'] = results['album']['release_date']
-        except:
+        except KeyError:
             data['release_date'] = ""
         data['play_count'] = results['album']['al_play_ct']
         data['favorite_count'] = results['album']['favorite_count']
