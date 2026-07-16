@@ -20,6 +20,16 @@ class FakeSimilarArtists(Artists):
     async def format_json_similar_artists(self, results: dict) -> dict:
         return {"seokey": results["seokey"]}
 
+class FakeTopTracks(Artists):
+    def __init__(self, entities):
+        self.aiohttp = MagicMock()
+        self.aiohttp.post = AsyncMock(return_value=MagicMock(json=AsyncMock(return_value={"entities": entities})))
+        self.api_endpoints = MagicMock(artist_top_tracks="https://example.com/artist-top-tracks/")
+        self.errors = Errors()
+
+    async def get_track_info(self, track_id: list) -> list:
+        return [{"seokey": seokey} for seokey in track_id]
+
 
 @pytest.mark.asyncio
 async def test_format_json_artists():
@@ -83,5 +93,21 @@ async def test_get_similar_artists_no_entities_returns_error():
     artists = FakeSimilarArtists([])
 
     result = await artists.get_similar_artists("artist-id-123", 10)
+
+    assert result == {"ERROR": "Unable to find any results!"}
+
+@pytest.mark.asyncio
+async def test_get_top_tracks_returns_track_data():
+    artists = FakeTopTracks([{"seokey": "track-1"}, {"seokey": "track-2"}])
+
+    result = await artists.get_top_tracks("artist-id-123")
+
+    assert result == [{"seokey": "track-1"}, {"seokey": "track-2"}]
+
+@pytest.mark.asyncio
+async def test_get_top_tracks_missing_entities_returns_error():
+    artists = FakeTopTracks(None)
+
+    result = await artists.get_top_tracks("artist-id-123")
 
     assert result == {"ERROR": "Unable to find any results!"}

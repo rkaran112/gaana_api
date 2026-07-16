@@ -33,11 +33,21 @@ class Artists:
     async def get_top_tracks(self, artist_id: str) -> dict:
         aiohttp = self.aiohttp
         endpoints = self.api_endpoints
+        errors = self.errors
         response = await aiohttp.post(endpoints.artist_top_tracks + artist_id)
         result = await response.json()
         track_seokeys = []
-        for track in result['entities']:
-            track_seokeys.append(track['seokey'])
+        try:
+            entities = result['entities'] or []
+        except (TypeError, KeyError):
+            entities = []
+        for track in entities:
+            try:
+                track_seokeys.append(track['seokey'])
+            except (TypeError, KeyError):
+                pass
+        if len(track_seokeys) == 0:
+            return await errors.no_results()
         track_data = await self.get_track_info(track_seokeys)
         return track_data
     
