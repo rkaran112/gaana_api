@@ -33,11 +33,21 @@ class Albums:
     async def get_album_tracks(self, album_id: list) -> list:
         aiohttp = self.aiohttp
         endpoints = self.api_endpoints
+        errors = self.errors
         response = await aiohttp.post(endpoints.album_details_url + album_id)
         result = await response.json()
         track_seokeys = []
-        for i in result['tracks']:
-            track_seokeys.append(i['seokey'])
+        try:
+            tracks = result['tracks'] or []
+        except (TypeError, KeyError):
+            tracks = []
+        for track in tracks:
+            try:
+                track_seokeys.append(track['seokey'])
+            except (TypeError, KeyError):
+                pass
+        if len(track_seokeys) == 0:
+            return await errors.no_results()
         result = await self.get_track_info(track_seokeys)
         return result
 

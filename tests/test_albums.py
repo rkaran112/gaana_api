@@ -1,14 +1,24 @@
 import pytest
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 from api.functions import Functions
 from api.errors import Errors
-from api.albums.albums import Albums 
+from api.albums.albums import Albums
 
 class FakeFormatter(Albums):
     def __init__(self):
         self.functions = AsyncMock(spec=Functions)
         self.errors = AsyncMock(spec=Errors)
         self.info = False ## Don't get album tracks
+
+class FakeAlbumTracks(Albums):
+    def __init__(self, tracks):
+        self.aiohttp = MagicMock()
+        self.aiohttp.post = AsyncMock(return_value=MagicMock(json=AsyncMock(return_value={"tracks": tracks})))
+        self.api_endpoints = MagicMock(album_details_url="https://example.com/album-details/")
+        self.errors = Errors()
+
+    async def get_track_info(self, track_id: list) -> list:
+        return [{"seokey": seokey} for seokey in track_id]
 
 @pytest.mark.asyncio
 async def test_format_json_albums():
@@ -75,3 +85,19 @@ async def test_format_json_albums_missing_release_date():
     result = await formatter.format_json_albums(gaana_input)
 
     assert result["release_date"] == ""
+
+@pytest.mark.asyncio
+async def test_get_album_tracks_returns_track_data():
+    albums = FakeAlbumTracks([{"seokey": "track-1"}, {"seokey": "track-2"}])
+
+    result = await albums.get_album_tracks("album-id-123")
+
+    assert result == [{"seokey": "track-1"}, {"seokey": "track-2"}]
+
+@pytest.mark.asyncio
+async def test_get_album_tracks_missing_tracks_returns_error():
+    albums = FakeAlbumTracks(None)
+
+    result = await albums.get_album_tracks("album-id-123")
+
+    assert result == {"ERROR": "Unable to find any results!"}
