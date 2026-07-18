@@ -31,19 +31,28 @@ class Functions:
     async def findArtistNames(self, results: list) -> str:
         artists = []
         for i in results:
-            artists.append(i['name'])
+            try:
+                artists.append(i['name'])
+            except KeyError:
+                return ""
         return ', '.join(artists)
 
     async def findArtistSeoKeys(self, results: list) -> str:
         seokeys = []
         for i in results:
-            seokeys.append(i['seokey'])
+            try:
+                seokeys.append(i['seokey'])
+            except KeyError:
+                return ""
         return ', '.join(seokeys)
 
     async def findArtistIds(self, results: list) -> str:
         ids = []
         for i in results:
-            ids.append(i['artist_id'])
+            try:
+                ids.append(i['artist_id'])
+            except KeyError:
+                return ""
         return ', '.join(ids)
 
     async def findGenres(self, results: list) -> str:

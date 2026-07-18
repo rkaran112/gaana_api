@@ -20,21 +20,24 @@ async def test_findArtistNames():
     result = await functions.findArtistNames(artists)
     assert result == "Gaana, Py"
     assert await functions.findArtistNames([]) == ""
-    
+    assert await functions.findArtistNames([{"id": 1}]) == ""
+
 @pytest.mark.asyncio
 async def test_findArtistSeoKeys():
     seokeys = [{"seokey": "Gaana"}, {"seokey": "Py"}]
     result = await functions.findArtistSeoKeys(seokeys)
     assert result == "Gaana, Py"
     assert await functions.findArtistSeoKeys([]) == ""
-    
+    assert await functions.findArtistSeoKeys([{"id": 1}]) == ""
+
 @pytest.mark.asyncio
 async def test_findArtistIds():
     artist_ids = [{"artist_id": "Gaana"}, {"artist_id": "Py"}]
     result = await functions.findArtistIds(artist_ids)
     assert result == "Gaana, Py"
     assert await functions.findArtistIds([]) == ""
-    
+    assert await functions.findArtistIds([{"id": 1}]) == ""
+
 @pytest.mark.asyncio
 async def test_findGenres():
     genres = [{"name": "Pop"}, {"name": "Rock"}]
