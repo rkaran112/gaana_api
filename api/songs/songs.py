@@ -25,7 +25,11 @@ class Songs:
         for i in track_id:
           response = await aiohttp.post(endpoints.song_details_url + i)
           result = await response.json()
-          track_info.extend(await asyncio.gather(*[self.format_json_songs(i) for i in result['tracks']]))
+          try:
+            tracks = result['tracks'] or []
+          except (TypeError, KeyError):
+            tracks = []
+          track_info.extend(await asyncio.gather(*[self.format_json_songs(t) for t in tracks]))
         return track_info
 
     async def format_json_songs(self, results: dict) -> dict:

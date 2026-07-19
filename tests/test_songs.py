@@ -1,13 +1,23 @@
 import pytest
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 from api.functions import Functions
 from api.errors import Errors
-from api.songs.songs import Songs 
+from api.songs.songs import Songs
 
 class FakeFormatter(Songs):
     def __init__(self):
         self.functions = AsyncMock(spec=Functions)
         self.errors = AsyncMock(spec=Errors)
+
+class FakeTrackInfo(Songs):
+    def __init__(self, tracks):
+        self.aiohttp = MagicMock()
+        self.aiohttp.post = AsyncMock(return_value=MagicMock(json=AsyncMock(return_value={"tracks": tracks})))
+        self.api_endpoints = MagicMock(song_details_url="https://example.com/song-details/")
+        self.errors = Errors()
+
+    async def format_json_songs(self, results: dict) -> dict:
+        return {"seokey": results["seokey"]}
 
 @pytest.mark.asyncio
 async def test_format_json_songs():
@@ -55,3 +65,19 @@ async def test_format_json_songs():
     assert result["images"]["urls"]["large_artwork"] == "https://cdn.gaana.com/images/test/size_l.jpg"
     assert "track_id" in result
     assert "stream_urls" in result
+
+@pytest.mark.asyncio
+async def test_get_track_info_returns_track_data():
+    songs = FakeTrackInfo([{"seokey": "track-1"}, {"seokey": "track-2"}])
+
+    result = await songs.get_track_info(["track-1"])
+
+    assert result == [{"seokey": "track-1"}, {"seokey": "track-2"}]
+
+@pytest.mark.asyncio
+async def test_get_track_info_missing_tracks_returns_empty_list():
+    songs = FakeTrackInfo(None)
+
+    result = await songs.get_track_info(["track-1"])
+
+    assert result == []
