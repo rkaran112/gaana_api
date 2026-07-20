@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI, Query
 from fastapi.responses import FileResponse
@@ -5,8 +6,14 @@ from fastapi.openapi.utils import get_openapi
 from api.gaanapy import GaanaPy
 from typing import Optional
 
-app = FastAPI()
 gaanapy = GaanaPy()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    await gaanapy.aiohttp.close()
+
+app = FastAPI(lifespan=lifespan)
 BASE_DIR = Path(__file__).resolve().parent
 
 @app.get("/")
