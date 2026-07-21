@@ -30,6 +30,16 @@ class FakeTopTracks(Artists):
     async def get_track_info(self, track_id: list) -> list:
         return [{"seokey": seokey} for seokey in track_id]
 
+class FakeSearchArtists(Artists):
+    def __init__(self, artists):
+        self.aiohttp = MagicMock()
+        self.aiohttp.post = AsyncMock(return_value=MagicMock(json=AsyncMock(return_value={"gr": [{"gd": artists}]})))
+        self.api_endpoints = MagicMock(search_artists_url="https://example.com/search-artists/")
+        self.errors = Errors()
+
+    async def get_artist_info(self, artist_id: list, info: bool) -> list:
+        return [{"seokey": seokey} for seokey in artist_id]
+
 
 @pytest.mark.asyncio
 async def test_format_json_artists():
@@ -109,5 +119,29 @@ async def test_get_top_tracks_missing_entities_returns_error():
     artists = FakeTopTracks(None)
 
     result = await artists.get_top_tracks("artist-id-123")
+
+    assert result == {"ERROR": "Unable to find any results!"}
+
+@pytest.mark.asyncio
+async def test_search_artists_returns_artist_info():
+    artists = FakeSearchArtists([{"seo": "artist-1"}, {"seo": "artist-2"}])
+
+    result = await artists.search_artists("test query", 2)
+
+    assert result == [{"seokey": "artist-1"}, {"seokey": "artist-2"}]
+
+@pytest.mark.asyncio
+async def test_search_artists_limit_exceeds_available_entities():
+    artists = FakeSearchArtists([{"seo": "artist-1"}])
+
+    result = await artists.search_artists("test query", 5)
+
+    assert result == [{"seokey": "artist-1"}]
+
+@pytest.mark.asyncio
+async def test_search_artists_no_results_returns_error():
+    artists = FakeSearchArtists([])
+
+    result = await artists.search_artists("test query", 5)
 
     assert result == {"ERROR": "Unable to find any results!"}
