@@ -21,6 +21,7 @@ async def test_findArtistNames():
     assert result == "Gaana, Py"
     assert await functions.findArtistNames([]) == ""
     assert await functions.findArtistNames([{"id": 1}]) == ""
+    assert await functions.findArtistNames(None) == ""
 
 @pytest.mark.asyncio
 async def test_findArtistSeoKeys():
@@ -29,6 +30,7 @@ async def test_findArtistSeoKeys():
     assert result == "Gaana, Py"
     assert await functions.findArtistSeoKeys([]) == ""
     assert await functions.findArtistSeoKeys([{"id": 1}]) == ""
+    assert await functions.findArtistSeoKeys(None) == ""
 
 @pytest.mark.asyncio
 async def test_findArtistIds():
@@ -37,6 +39,7 @@ async def test_findArtistIds():
     assert result == "Gaana, Py"
     assert await functions.findArtistIds([]) == ""
     assert await functions.findArtistIds([{"id": 1}]) == ""
+    assert await functions.findArtistIds(None) == ""
 
 @pytest.mark.asyncio
 async def test_findGenres():
@@ -45,6 +48,7 @@ async def test_findGenres():
     assert result == "Pop, Rock"
     assert await functions.findGenres([]) == ""
     assert await functions.findGenres([{"id": 1}]) == ""
+    assert await functions.findGenres(None) == ""
 
 @pytest.mark.asyncio
 async def test_isExplicit():

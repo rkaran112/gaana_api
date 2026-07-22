@@ -30,38 +30,50 @@ class Functions:
 
     async def findArtistNames(self, results: list) -> str:
         artists = []
-        for i in results:
-            try:
-                artists.append(i['name'])
-            except KeyError:
-                return ""
+        try:
+            for i in results:
+                try:
+                    artists.append(i['name'])
+                except KeyError:
+                    return ""
+        except TypeError:
+            return ""
         return ', '.join(artists)
 
     async def findArtistSeoKeys(self, results: list) -> str:
         seokeys = []
-        for i in results:
-            try:
-                seokeys.append(i['seokey'])
-            except KeyError:
-                return ""
+        try:
+            for i in results:
+                try:
+                    seokeys.append(i['seokey'])
+                except KeyError:
+                    return ""
+        except TypeError:
+            return ""
         return ', '.join(seokeys)
 
     async def findArtistIds(self, results: list) -> str:
         ids = []
-        for i in results:
-            try:
-                ids.append(i['artist_id'])
-            except KeyError:
-                return ""
+        try:
+            for i in results:
+                try:
+                    ids.append(i['artist_id'])
+                except KeyError:
+                    return ""
+        except TypeError:
+            return ""
         return ', '.join(ids)
 
     async def findGenres(self, results: list) -> str:
         genres = []
-        for i in results:
-            try:
-                genres.append(i['name'])
-            except KeyError:
-                return ""
+        try:
+            for i in results:
+                try:
+                    genres.append(i['name'])
+                except KeyError:
+                    return ""
+        except TypeError:
+            return ""
         return ', '.join(genres)
 
     async def isExplicit(self, explicit: int) -> bool: 
